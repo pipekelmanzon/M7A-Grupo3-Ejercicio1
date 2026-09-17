@@ -100,4 +100,29 @@ describe('ExchangeRateService', () => {
     expect(result.rates.BRL).toBe(5.6);
     expect(source.fetchRates).toHaveBeenCalledTimes(2);
   });
+
+  it('falls back directly when there are no attempts to make', async () => {
+    const source = provider([{ BRL: 5.4 }]);
+    const service = new ExchangeRateService(source, logger());
+
+    const result = await service.getRates({ timeoutMs: 100, maxAttempts: 0 });
+
+    expect(result.source).toBe('fallback-usd');
+    expect(source.fetchRates).not.toHaveBeenCalled();
+  });
+
+  it('usa el logger de consola y el reintento real cuando no se inyecta ninguno', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const source = provider([new ExchangeRateProviderError('temporary', true), { BRL: 5.5 }]);
+    const service = new ExchangeRateService(source);
+
+    const result = await service.getRates({ timeoutMs: 100, maxAttempts: 2 });
+
+    expect(result).toEqual({ rates: { BRL: 5.5 }, date: '2026-09-17', source: 'api' });
+    expect(warnSpy).toHaveBeenCalledWith('Exchange rate attempt failed', expect.any(Object));
+
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
 });
