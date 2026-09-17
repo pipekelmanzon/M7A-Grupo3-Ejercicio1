@@ -1,0 +1,35 @@
+{
+  "name": "m7a-grupo3-ejercicio1",
+  "version": "1.0.0",
+  "description": "Sistema de Reservas de Vuelos con Pipes and Filters - Ejercicio de Aplicacion 1, Grupo 3 M7A",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "verify": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
+    "@babel/preset-typescript": "^7.26.0",
+    "@types/express": "^5.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.10.0",
+    "@types/supertest": "^6.0.2",
+    "babel-jest": "^30.0.0",
+    "jest": "^30.0.0",
+    "supertest": "^7.0.0",
+    "typescript": "^5.7.0"
+  }
+}
