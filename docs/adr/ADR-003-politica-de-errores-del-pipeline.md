@@ -37,6 +37,7 @@ Hay tres tipos de problema bien distintos:
 | Excepción en un filtro crítico: validación de pasajero, de vuelo o precio base | Se registra el error y se corta | `error` | `FILTER_EXCEPTION` |
 | Excepción en un filtro no crítico: tipo de cambio, lealtad, tipo de pasajero o impuestos | Se registra el error y el pipeline sigue con el contexto anterior a ese filtro | `error` | `FILTER_EXCEPTION` |
 | Un filtro devuelve un contexto que no cumple el esquema | Se descarta ese contexto, se conserva el anterior y se corta | `error` | `CORRUPTED_CONTEXT` |
+| Excepción inesperada en `pipeline.run` que no viene de un filtro puntual (por ejemplo un bug en el propio pipeline) | El servicio de procesamiento la atrapa por reserva: esa reserva queda en error y las demás del lote siguen sin verse afectadas | `error` | `PIPELINE_EXCEPTION` |
 | A un filtro no crítico le falta un dato que requiere porque se deshabilitó el filtro que lo provee | No se ejecuta y la reserva sigue | `completed_with_warnings` | `MISSING_DEPENDENCY` como warning |
 | Lo mismo, pero en el filtro de precio base | No se ejecuta y se corta, porque sin precio base no hay precio | `error` | `MISSING_DEPENDENCY` como error |
 | Degradación del tipo de cambio | Sigue | `completed_with_warnings` | `EXCHANGE_RATE_STALE` o `EXCHANGE_RATE_FALLBACK` |

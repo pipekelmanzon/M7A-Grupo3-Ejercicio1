@@ -229,6 +229,7 @@ Cada reserva termina en uno de cuatro estados. El detalle y la justificación es
 | `MISSING_DEPENDENCY` | pipeline | Al filtro le falta un dato. Error si es crítico, warning si no |
 | `FILTER_EXCEPTION` | pipeline | Un filtro lanzó una excepción |
 | `CORRUPTED_CONTEXT` | pipeline | Un filtro devolvió un contexto que no cumple el esquema |
+| `PIPELINE_EXCEPTION` | pipeline | El pipeline lanzó una excepción inesperada que no vino de un filtro puntual. Esa reserva queda en `error`, el resto del lote no se ve afectado |
 
 Códigos HTTP: `POST /reservations/process` responde **200** siempre que el cuerpo tenga forma de lote, aunque todas las reservas hayan sido rechazadas. Responde **400** si el cuerpo no es un lote, y **500** solo ante una falla del propio procesador.
 
