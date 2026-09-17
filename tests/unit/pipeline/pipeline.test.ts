@@ -1,6 +1,7 @@
 import { createInitialContext, type ReservationContext } from '../../../src/pipeline/context';
 import { Pipeline } from '../../../src/pipeline/pipeline';
-import { PipelineConfigStore, defaultPipelineConfig } from '../../../src/pipeline/pipeline-config';
+import { defaultPipelineConfig } from '../../../src/pipeline/pipeline-config';
+import { PipelineConfigStore } from '../../../src/pipeline/pipeline-config.store';
 import type { Filter } from '../../../src/pipeline/filter';
 
 const request = {
@@ -101,5 +102,44 @@ describe('Pipeline', () => {
     expect(result.status).toBe('error');
     expect(result.errors[0]?.code).toBe('CORRUPTED_CONTEXT');
     expect(result.trace[0]?.outcome).toBe('error');
+  });
+
+  it('stops on a missing dependency in a critical filter', async () => {
+    const pipeline = new Pipeline([
+      filter('critical-dependent', async (current) => current, { requires: ['flight'], critical: true }),
+    ]);
+
+    const result = await pipeline.run(context());
+
+    expect(result.status).toBe('error');
+    expect(result.errors[0]?.code).toBe('MISSING_DEPENDENCY');
+    expect(result.trace[0]?.outcome).toBe('skipped');
+  });
+
+  it('continues with a warning on a missing dependency in a non-critical filter', async () => {
+    const later = jest.fn(async (current: ReservationContext) => current);
+    const pipeline = new Pipeline([
+      filter('optional-dependent', async (current) => current, { requires: ['flight'] }),
+      filter('later', later),
+    ]);
+
+    const result = await pipeline.run(context());
+
+    expect(later).toHaveBeenCalled();
+    expect(result.status).toBe('completed_with_warnings');
+    expect(result.warnings[0]?.code).toBe('MISSING_DEPENDENCY');
+  });
+
+  it('can skip context validation when configured', async () => {
+    const config = structuredClone(defaultPipelineConfig);
+    config.validateContextBetweenFilters = false;
+    const pipeline = new Pipeline([
+      filter('unchecked', async (current) => ({ ...current, pricing: { currency: 'USD', total: -1 } })),
+    ], new PipelineConfigStore(config));
+
+    const result = await pipeline.run(context());
+
+    expect(result.status).toBe('completed');
+    expect(result.trace[0]?.outcome).toBe('ok');
   });
 });
