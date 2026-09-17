@@ -25,6 +25,17 @@ describe('rutas inexistentes', () => {
     expect(response.status).toBe(400);
     expect(response.body.error.message).toBe('El cuerpo no es JSON valido');
   });
+
+  it('responde 413 ante un cuerpo que supera el limite de tamano, no 500', async () => {
+    const { app } = buildTestApp();
+    const cuerpoEnorme = { reservations: [{ reservationId: 'x'.repeat(2 * 1024 * 1024) }] };
+    const response = await request(app)
+      .post('/reservations/process')
+      .set('Content-Type', 'application/json')
+      .send(cuerpoEnorme);
+    expect(response.status).toBe(413);
+    expect(response.body.error.message).toMatch(/grande|large|tamano/i);
+  });
 });
 
 describe('GET /reservations/:id/status', () => {

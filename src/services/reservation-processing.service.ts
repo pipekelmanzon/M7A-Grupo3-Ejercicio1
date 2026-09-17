@@ -50,6 +50,18 @@ function malformedResult(reservationId: string, problems: readonly string[]): Re
   };
 }
 
+function pipelineExceptionResult(reservationId: string, error: unknown): ReservationResult {
+  const message = error instanceof Error ? error.message : 'Unknown pipeline exception';
+  return {
+    reservationId,
+    status: 'error',
+    metadata: {},
+    errors: [{ code: 'PIPELINE_EXCEPTION', message, filter: 'pipeline' }],
+    warnings: [],
+    trace: [],
+  };
+}
+
 /**
  * Procesa un lote de reservas. Cada reserva recorre el pipeline por separado
  * y en paralelo, y un problema en una nunca afecta a las demas (ADR-003).
@@ -58,11 +70,14 @@ export class ReservationProcessingService {
   private readonly pipeline: Pipeline;
   private readonly statusRepository: ProcessingStatusRepository;
   /**
-   * Reservas que estan pasando por el pipeline ahora mismo. Permite que un
-   * GET de estado concurrente responda `processing` en vez de 404, sin tener
-   * que guardar resultados a medio armar en el almacen de estados.
+   * Cuantos lotes en curso estan procesando cada reservationId ahora mismo.
+   * Permite que un GET de estado concurrente responda `processing` en vez de
+   * 404, sin tener que guardar resultados a medio armar en el almacen de
+   * estados. Es un contador y no un Set porque dos lotes concurrentes pueden
+   * declarar el mismo id: el que termina primero no debe apagar la marca del
+   * que sigue en curso.
    */
-  private readonly inFlight = new Set<string>();
+  private readonly inFlight = new Map<string, number>();
 
   public constructor(pipeline: Pipeline, statusRepository: ProcessingStatusRepository) {
     this.pipeline = pipeline;
@@ -73,12 +88,22 @@ export class ReservationProcessingService {
     return this.inFlight.has(reservationId);
   }
 
+  private addInFlight(reservationId: string): void {
+    this.inFlight.set(reservationId, (this.inFlight.get(reservationId) ?? 0) + 1);
+  }
+
+  private removeInFlight(reservationId: string): void {
+    const count = this.inFlight.get(reservationId) ?? 0;
+    if (count <= 1) this.inFlight.delete(reservationId);
+    else this.inFlight.set(reservationId, count - 1);
+  }
+
   public async processBatch(reservations: readonly unknown[]): Promise<BatchReport> {
     const startedAt = performance.now();
     const parsed = reservations.map((value, index) => parseReservation(value, index));
 
     for (const item of parsed) {
-      if (item.request) this.inFlight.add(item.reservationId);
+      if (item.request) this.addInFlight(item.reservationId);
     }
 
     try {
@@ -86,7 +111,11 @@ export class ReservationProcessingService {
         if (!item.request) {
           return malformedResult(item.reservationId, item.problems ?? []);
         }
-        return this.pipeline.run(createInitialContext(item.request));
+        try {
+          return await this.pipeline.run(createInitialContext(item.request));
+        } catch (error) {
+          return pipelineExceptionResult(item.reservationId, error);
+        }
       }));
 
       for (const result of results) this.statusRepository.save(result);
@@ -97,7 +126,9 @@ export class ReservationProcessingService {
 
       return { processingTimeMs, summary, results };
     } finally {
-      for (const item of parsed) this.inFlight.delete(item.reservationId);
+      for (const item of parsed) {
+        if (item.request) this.removeInFlight(item.reservationId);
+      }
     }
   }
 }
