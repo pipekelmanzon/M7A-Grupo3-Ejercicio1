@@ -32,8 +32,8 @@ const consoleExchangeRateLogger: ExchangeRateLogger = {
 };
 
 export class ExchangeRateService {
-  private cache?: CacheEntry;
-  private inFlight?: Promise<ExchangeRatesResult>;
+  private cache: CacheEntry | undefined;
+  private inFlight: Promise<ExchangeRatesResult> | undefined;
   private readonly provider: ExchangeRateProvider;
   private readonly logger: ExchangeRateLogger;
   private readonly now: () => number;
