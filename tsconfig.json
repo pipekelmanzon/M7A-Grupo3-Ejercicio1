@@ -18,6 +18,7 @@
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
     "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
 
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
