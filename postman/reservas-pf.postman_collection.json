@@ -1,0 +1,2162 @@
+{
+  "info": {
+    "name": "Reservas de Vuelos - Pipes and Filters (M7A Grupo 3)",
+    "description": "Coleccion del Ejercicio de Aplicacion 1. Levantar el servidor con `npm run dev` y correr la coleccion entera con el Collection Runner.\n\nLa variable `baseUrl` apunta por defecto a http://localhost:3000.\n\nUn script de pre-request calcula las fechas de salida de los vuelos mock, porque se generan en relacion al arranque del proceso.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Las fechas de los vuelos mock se calculan en relacion al arranque del",
+          "// proceso, asi que no se pueden escribir fijas en la coleccion.",
+          "const offsets = {\"AA001\": 10, \"LA4567\": 15, \"AR1140\": 20, \"IB6844\": 18, \"UX0045\": 12, \"CM0201\": 9, \"AA0999\": -5, \"JL0006\": 25};",
+          "Object.entries(offsets).forEach(([code, days]) => {",
+          "  const d = new Date();",
+          "  d.setUTCDate(d.getUTCDate() + days);",
+          "  pm.collectionVariables.set('fecha_' + code, d.toISOString().slice(0, 10));",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Flujo basico",
+      "description": "Los casos de entrada de la letra: reserva valida, pasajero inexistente, vuelo sin asientos y datos malformados.",
+      "item": [
+        {
+          "name": "Reserva valida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "Pasajero existente y activo sobre un vuelo con asientos. Termina en `completed`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-1001\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"GRU\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"business\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"queda completed\", () => pm.expect(pm.response.json().data.results[0].status).to.eql(\"completed\"));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Reserva valida - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "Pasajero existente y activo sobre un vuelo con asientos. Termina en `completed`.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-1001\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"GRU\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"business\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 10.358937000000026,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 1,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 0,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-1001\",\n        \"status\": \"completed\",\n        \"pricing\": {\n          \"currency\": \"USD\",\n          \"basePrice\": 1550,\n          \"loyaltyDiscount\": 232.5,\n          \"passengerTypeDiscount\": 0,\n          \"subtotal\": 1317.5,\n          \"taxes\": 158.1,\n          \"fuelSurcharge\": 124,\n          \"airportFee\": 25,\n          \"total\": 1624.6\n        },\n        \"localPricing\": {\n          \"currency\": \"BRL\",\n          \"rate\": 5.4,\n          \"total\": 8772.84\n        },\n        \"metadata\": {\n          \"currencyConversion\": {\n            \"from\": \"USD\",\n            \"to\": \"BRL\",\n            \"rate\": 5.4,\n            \"source\": \"api\",\n            \"originalBasePrice\": 620,\n            \"convertedBasePrice\": 3348,\n            \"ratesDate\": \"2026-09-17\"\n          }\n        },\n        \"errors\": [],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 4.485744999999952\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 1.639821999999981\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 1.517581000000007\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.2352989999999977\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.3460450000000037\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.20089800000005198\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.21602699999999686\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Pasajero inexistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "El filtro 1 corta la reserva. El lote igual responde 200 (ADR-003).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-1002\",\n      \"passengerId\": \"NO-EXISTE\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"GRU\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"rechazada por PASSENGER_NOT_FOUND\", () => {",
+                  "  const r = pm.response.json().data.results[0];",
+                  "  pm.expect(r.status).to.eql(\"rejected\");",
+                  "  pm.expect(r.errors[0].code).to.eql(\"PASSENGER_NOT_FOUND\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Pasajero inexistente - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "El filtro 1 corta la reserva. El lote igual responde 200 (ADR-003).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-1002\",\n      \"passengerId\": \"NO-EXISTE\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"GRU\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 0.9235390000000052,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 0,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 1,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-1002\",\n        \"status\": \"rejected\",\n        \"metadata\": {},\n        \"errors\": [\n          {\n            \"code\": \"PASSENGER_NOT_FOUND\",\n            \"message\": \"No existe el pasajero NO-EXISTE\",\n            \"filter\": \"passenger-validation\"\n          }\n        ],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"rejected\",\n            \"durationMs\": 0.5539749999999799\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0024719999999547326\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.02057299999995621\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0039939999999774045\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0015889999999672\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.00044699999995145845\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.00038900000004105095\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Vuelo sin asientos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "UX0045 tiene 0 asientos disponibles.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-1003\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"UX0045\",\n      \"origin\": \"MVD\",\n      \"destination\": \"MAD\",\n      \"departureDate\": \"{{fecha_UX0045}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"rechazada por NO_SEATS_AVAILABLE\", () => pm.expect(pm.response.json().data.results[0].errors[0].code).to.eql(\"NO_SEATS_AVAILABLE\"));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Vuelo sin asientos - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "UX0045 tiene 0 asientos disponibles.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-1003\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"UX0045\",\n      \"origin\": \"MVD\",\n      \"destination\": \"MAD\",\n      \"departureDate\": \"{{fecha_UX0045}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 1.0990600000000086,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 0,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 1,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-1003\",\n        \"status\": \"rejected\",\n        \"metadata\": {},\n        \"errors\": [\n          {\n            \"code\": \"NO_SEATS_AVAILABLE\",\n            \"message\": \"El vuelo UX0045 no tiene asientos disponibles\",\n            \"filter\": \"flight-validation\"\n          }\n        ],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.6798670000000016\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"rejected\",\n            \"durationMs\": 0.29340300000001207\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.002243999999961943\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.00042799999999942884\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.000532999999961703\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0004690000000096006\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.00038699999998925705\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Lote con una reserva mal formada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "La reserva mal formada no entra al pipeline y la otra se procesa igual.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-ROTA\",\n      \"passengerId\": \"P001\",\n      \"seatClass\": \"primera-clase\"\n    },\n    {\n      \"reservationId\": \"R-1004\",\n      \"passengerId\": \"P004\",\n      \"flightCode\": \"AA001\",\n      \"origin\": \"JFK\",\n      \"destination\": \"MIA\",\n      \"departureDate\": \"{{fecha_AA001}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"una rechazada y una completada\", () => {",
+                  "  const s = pm.response.json().data.summary;",
+                  "  pm.expect(s.rejected).to.eql(1);",
+                  "  pm.expect(s.completed).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Lote con una reserva mal formada - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "La reserva mal formada no entra al pipeline y la otra se procesa igual.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-ROTA\",\n      \"passengerId\": \"P001\",\n      \"seatClass\": \"primera-clase\"\n    },\n    {\n      \"reservationId\": \"R-1004\",\n      \"passengerId\": \"P004\",\n      \"flightCode\": \"AA001\",\n      \"origin\": \"JFK\",\n      \"destination\": \"MIA\",\n      \"departureDate\": \"{{fecha_AA001}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 2.201718000000028,\n    \"summary\": {\n      \"total\": 2,\n      \"completed\": 1,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 1,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-ROTA\",\n        \"status\": \"rejected\",\n        \"metadata\": {},\n        \"errors\": [\n          {\n            \"code\": \"MALFORMED_RESERVATION\",\n            \"message\": \"La reserva no cumple el formato esperado -> flightCode: Invalid input: expected string, received undefined; origin: Invalid input: expected string, received undefined; destination: Invalid input: expected string, received undefined; departureDate: Invalid input: expected string, received undefined; seatClass: Invalid option: expected one of \\\"economy\\\"|\\\"business\\\"|\\\"first\\\"; passengerType: Invalid option: expected one of \\\"adult\\\"|\\\"child\\\"|\\\"senior\\\"\",\n            \"filter\": \"input-validation\"\n          }\n        ],\n        \"warnings\": [],\n        \"trace\": []\n      },\n      {\n        \"reservationId\": \"R-1004\",\n        \"status\": \"completed\",\n        \"pricing\": {\n          \"currency\": \"USD\",\n          \"basePrice\": 300,\n          \"loyaltyDiscount\": 0,\n          \"passengerTypeDiscount\": 0,\n          \"subtotal\": 300,\n          \"taxes\": 36,\n          \"fuelSurcharge\": 24,\n          \"airportFee\": 25,\n          \"total\": 385\n        },\n        \"localPricing\": {\n          \"currency\": \"USD\",\n          \"rate\": 1,\n          \"total\": 385\n        },\n        \"metadata\": {\n          \"currencyConversion\": {\n            \"from\": \"USD\",\n            \"to\": \"USD\",\n            \"rate\": 1,\n            \"source\": \"api\",\n            \"originalBasePrice\": 300,\n            \"convertedBasePrice\": 300\n          }\n        },\n        \"errors\": [],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.15414200000003575\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.08231399999999667\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.08788600000002589\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.27691499999997404\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.11129800000003343\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.18716399999999567\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.12184299999995574\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Lote invalido (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "Si el cuerpo no tiene forma de lote, se responde 400 y no entra nada al pipeline.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": []\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Lote invalido (400) - 400",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "Si el cuerpo no tiene forma de lote, se responde 400 y no entra nada al pipeline.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": []\n}"
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"message\": \"El cuerpo debe ser un lote de reservas\",\n    \"details\": {\n      \"issues\": [\n        {\n          \"path\": \"reservations\",\n          \"message\": \"el lote debe tener al menos 1 reserva\"\n        }\n      ]\n    }\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Precios",
+      "description": "Los cuatro casos de calculo de la letra, con los totales verificados a mano.",
+      "item": [
+        {
+          "name": "Economy sin descuentos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "300 * 1 = 300; sin tier ni ajuste; impuesto 36; combustible 24; aeropuerto 25 => 385.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-2001\",\n      \"passengerId\": \"P004\",\n      \"flightCode\": \"AA001\",\n      \"origin\": \"JFK\",\n      \"destination\": \"MIA\",\n      \"departureDate\": \"{{fecha_AA001}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"total 385\", () => pm.expect(pm.response.json().data.results[0].pricing.total).to.eql(385));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Economy sin descuentos - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "300 * 1 = 300; sin tier ni ajuste; impuesto 36; combustible 24; aeropuerto 25 => 385.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-2001\",\n      \"passengerId\": \"P004\",\n      \"flightCode\": \"AA001\",\n      \"origin\": \"JFK\",\n      \"destination\": \"MIA\",\n      \"departureDate\": \"{{fecha_AA001}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 0.6854910000000132,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 1,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 0,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-2001\",\n        \"status\": \"completed\",\n        \"pricing\": {\n          \"currency\": \"USD\",\n          \"basePrice\": 300,\n          \"loyaltyDiscount\": 0,\n          \"passengerTypeDiscount\": 0,\n          \"subtotal\": 300,\n          \"taxes\": 36,\n          \"fuelSurcharge\": 24,\n          \"airportFee\": 25,\n          \"total\": 385\n        },\n        \"localPricing\": {\n          \"currency\": \"USD\",\n          \"rate\": 1,\n          \"total\": 385\n        },\n        \"metadata\": {\n          \"currencyConversion\": {\n            \"from\": \"USD\",\n            \"to\": \"USD\",\n            \"rate\": 1,\n            \"source\": \"api\",\n            \"originalBasePrice\": 300,\n            \"convertedBasePrice\": 300\n          }\n        },\n        \"errors\": [],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.1260599999999954\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.048319999999989705\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.053732999999965614\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.09263300000003483\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.055145000000038635\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.07784500000002481\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.10876100000001543\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Gold con descuento por lealtad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "620; lealtad gold 15 % = 93; subtotal 527; impuesto 63,24; combustible 49,6; aeropuerto 25 => 664,84.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-2002\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"GRU\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"total 664.84\", () => pm.expect(pm.response.json().data.results[0].pricing.total).to.eql(664.84));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Gold con descuento por lealtad - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "620; lealtad gold 15 % = 93; subtotal 527; impuesto 63,24; combustible 49,6; aeropuerto 25 => 664,84.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-2002\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"GRU\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 0.6443479999999795,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 1,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 0,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-2002\",\n        \"status\": \"completed\",\n        \"pricing\": {\n          \"currency\": \"USD\",\n          \"basePrice\": 620,\n          \"loyaltyDiscount\": 93,\n          \"passengerTypeDiscount\": 0,\n          \"subtotal\": 527,\n          \"taxes\": 63.24,\n          \"fuelSurcharge\": 49.6,\n          \"airportFee\": 25,\n          \"total\": 664.84\n        },\n        \"localPricing\": {\n          \"currency\": \"BRL\",\n          \"rate\": 5.4,\n          \"total\": 3590.14\n        },\n        \"metadata\": {\n          \"currencyConversion\": {\n            \"from\": \"USD\",\n            \"to\": \"BRL\",\n            \"rate\": 5.4,\n            \"source\": \"cache\",\n            \"originalBasePrice\": 620,\n            \"convertedBasePrice\": 3348,\n            \"ratesDate\": \"2026-09-17\"\n          }\n        },\n        \"errors\": [],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.09355600000003506\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.04268399999995154\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.15039300000000821\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.052769000000012056\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.0646899999999846\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.052539000000024316\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.05785000000003038\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Nino en business",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "410 * 2,5 = 1025; nino 25 % = 256,25; subtotal 768,75; impuesto 92,25; combustible 82; aeropuerto 25 => 968.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-2003\",\n      \"passengerId\": \"P005\",\n      \"flightCode\": \"CM0201\",\n      \"origin\": \"PTY\",\n      \"destination\": \"MVD\",\n      \"departureDate\": \"{{fecha_CM0201}}\",\n      \"seatClass\": \"business\",\n      \"passengerType\": \"child\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"total 968\", () => pm.expect(pm.response.json().data.results[0].pricing.total).to.eql(968));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Nino en business - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "410 * 2,5 = 1025; nino 25 % = 256,25; subtotal 768,75; impuesto 92,25; combustible 82; aeropuerto 25 => 968.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-2003\",\n      \"passengerId\": \"P005\",\n      \"flightCode\": \"CM0201\",\n      \"origin\": \"PTY\",\n      \"destination\": \"MVD\",\n      \"departureDate\": \"{{fecha_CM0201}}\",\n      \"seatClass\": \"business\",\n      \"passengerType\": \"child\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 0.7661039999999844,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 1,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 0,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-2003\",\n        \"status\": \"completed\",\n        \"pricing\": {\n          \"currency\": \"USD\",\n          \"basePrice\": 1025,\n          \"loyaltyDiscount\": 0,\n          \"passengerTypeDiscount\": 256.25,\n          \"subtotal\": 768.75,\n          \"taxes\": 92.25,\n          \"fuelSurcharge\": 82,\n          \"airportFee\": 25,\n          \"total\": 968\n        },\n        \"localPricing\": {\n          \"currency\": \"UYU\",\n          \"rate\": 40,\n          \"total\": 38720\n        },\n        \"metadata\": {\n          \"currencyConversion\": {\n            \"from\": \"USD\",\n            \"to\": \"UYU\",\n            \"rate\": 40,\n            \"source\": \"cache\",\n            \"originalBasePrice\": 410,\n            \"convertedBasePrice\": 16400,\n            \"ratesDate\": \"2026-09-17\"\n          }\n        },\n        \"errors\": [],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.12796400000001995\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.044536000000050535\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.06135900000003858\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.06408299999998235\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.04698600000000397\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.07114799999999377\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.05778900000001386\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Senior en primera con multiples ajustes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "300 * 4 = 1200; silver 10 % = 120; senior 15 % = 162; subtotal 918; impuesto 110,16; combustible 96; aeropuerto 25 => 1149,16.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-2004\",\n      \"passengerId\": \"P006\",\n      \"flightCode\": \"AA001\",\n      \"origin\": \"JFK\",\n      \"destination\": \"MIA\",\n      \"departureDate\": \"{{fecha_AA001}}\",\n      \"seatClass\": \"first\",\n      \"passengerType\": \"senior\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"total 1149.16\", () => pm.expect(pm.response.json().data.results[0].pricing.total).to.eql(1149.16));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Senior en primera con multiples ajustes - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "300 * 4 = 1200; silver 10 % = 120; senior 15 % = 162; subtotal 918; impuesto 110,16; combustible 96; aeropuerto 25 => 1149,16.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-2004\",\n      \"passengerId\": \"P006\",\n      \"flightCode\": \"AA001\",\n      \"origin\": \"JFK\",\n      \"destination\": \"MIA\",\n      \"departureDate\": \"{{fecha_AA001}}\",\n      \"seatClass\": \"first\",\n      \"passengerType\": \"senior\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 0.7728239999999573,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 1,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 0,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-2004\",\n        \"status\": \"completed\",\n        \"pricing\": {\n          \"currency\": \"USD\",\n          \"basePrice\": 1200,\n          \"loyaltyDiscount\": 120,\n          \"passengerTypeDiscount\": 162,\n          \"subtotal\": 918,\n          \"taxes\": 110.16,\n          \"fuelSurcharge\": 96,\n          \"airportFee\": 25,\n          \"total\": 1149.16\n        },\n        \"localPricing\": {\n          \"currency\": \"USD\",\n          \"rate\": 1,\n          \"total\": 1149.16\n        },\n        \"metadata\": {\n          \"currencyConversion\": {\n            \"from\": \"USD\",\n            \"to\": \"USD\",\n            \"rate\": 1,\n            \"source\": \"api\",\n            \"originalBasePrice\": 300,\n            \"convertedBasePrice\": 300\n          }\n        },\n        \"errors\": [],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.21114600000004202\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.061301999999955115\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.05559499999998252\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.04199800000003506\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.06153400000005149\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.08632299999999304\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.08232299999997394\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Tipo de cambio",
+      "description": "Conversion a la moneda del pais de destino. Las tasas de los ejemplos guardados salen de un proveedor simulado, para que no cambien cada vez que se regenera la coleccion; contra la API real los numeros son otros pero la forma de la respuesta es la misma.",
+      "item": [
+        {
+          "name": "Destino Brasil (BRL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "Devuelve `localPricing` en BRL y `source: api` en la primera llamada.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-3001\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"GRU\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"trae moneda local\", () => pm.expect(pm.response.json().data.results[0].localPricing.currency).to.eql(\"BRL\"));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Destino Brasil (BRL) - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "Devuelve `localPricing` en BRL y `source: api` en la primera llamada.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-3001\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"GRU\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 0.3979620000000068,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 1,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 0,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-3001\",\n        \"status\": \"completed\",\n        \"pricing\": {\n          \"currency\": \"USD\",\n          \"basePrice\": 620,\n          \"loyaltyDiscount\": 93,\n          \"passengerTypeDiscount\": 0,\n          \"subtotal\": 527,\n          \"taxes\": 63.24,\n          \"fuelSurcharge\": 49.6,\n          \"airportFee\": 25,\n          \"total\": 664.84\n        },\n        \"localPricing\": {\n          \"currency\": \"BRL\",\n          \"rate\": 5.4,\n          \"total\": 3590.14\n        },\n        \"metadata\": {\n          \"currencyConversion\": {\n            \"from\": \"USD\",\n            \"to\": \"BRL\",\n            \"rate\": 5.4,\n            \"source\": \"cache\",\n            \"originalBasePrice\": 620,\n            \"convertedBasePrice\": 3348,\n            \"ratesDate\": \"2026-09-17\"\n          }\n        },\n        \"errors\": [],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.0820810000000165\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.037562999999977364\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.04598299999997835\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.0326050000000464\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.032294000000035794\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.034752999999966505\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.04210499999999229\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Destino Espana (EUR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "Mismo lote a un destino con otra moneda.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-3002\",\n      \"passengerId\": \"P004\",\n      \"flightCode\": \"AR1140\",\n      \"origin\": \"EZE\",\n      \"destination\": \"MAD\",\n      \"departureDate\": \"{{fecha_AR1140}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Destino Espana (EUR) - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "Mismo lote a un destino con otra moneda.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-3002\",\n      \"passengerId\": \"P004\",\n      \"flightCode\": \"AR1140\",\n      \"origin\": \"EZE\",\n      \"destination\": \"MAD\",\n      \"departureDate\": \"{{fecha_AR1140}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 0.49456300000002784,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 1,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 0,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-3002\",\n        \"status\": \"completed\",\n        \"pricing\": {\n          \"currency\": \"USD\",\n          \"basePrice\": 950,\n          \"loyaltyDiscount\": 0,\n          \"passengerTypeDiscount\": 0,\n          \"subtotal\": 950,\n          \"taxes\": 114,\n          \"fuelSurcharge\": 76,\n          \"airportFee\": 25,\n          \"total\": 1165\n        },\n        \"localPricing\": {\n          \"currency\": \"EUR\",\n          \"rate\": 0.92,\n          \"total\": 1071.8\n        },\n        \"metadata\": {\n          \"currencyConversion\": {\n            \"from\": \"USD\",\n            \"to\": \"EUR\",\n            \"rate\": 0.92,\n            \"source\": \"cache\",\n            \"originalBasePrice\": 950,\n            \"convertedBasePrice\": 874,\n            \"ratesDate\": \"2026-09-17\"\n          }\n        },\n        \"errors\": [],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.1835140000000024\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.039655000000038854\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.046507000000019616\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.032372999999950025\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.03079200000001947\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.03451300000000401\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.03884800000002997\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Destino Argentina (ARS)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "Tercera moneda, para ver que la conversion sale del pais de destino del vuelo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-3003\",\n      \"passengerId\": \"P004\",\n      \"flightCode\": \"IB6844\",\n      \"origin\": \"MAD\",\n      \"destination\": \"EZE\",\n      \"departureDate\": \"{{fecha_IB6844}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Destino Argentina (ARS) - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "Tercera moneda, para ver que la conversion sale del pais de destino del vuelo.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-3003\",\n      \"passengerId\": \"P004\",\n      \"flightCode\": \"IB6844\",\n      \"origin\": \"MAD\",\n      \"destination\": \"EZE\",\n      \"departureDate\": \"{{fecha_IB6844}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 0.3872210000000109,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 1,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 0,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-3003\",\n        \"status\": \"completed\",\n        \"pricing\": {\n          \"currency\": \"USD\",\n          \"basePrice\": 980,\n          \"loyaltyDiscount\": 0,\n          \"passengerTypeDiscount\": 0,\n          \"subtotal\": 980,\n          \"taxes\": 117.6,\n          \"fuelSurcharge\": 78.4,\n          \"airportFee\": 25,\n          \"total\": 1201\n        },\n        \"localPricing\": {\n          \"currency\": \"ARS\",\n          \"rate\": 1000,\n          \"total\": 1201000\n        },\n        \"metadata\": {\n          \"currencyConversion\": {\n            \"from\": \"USD\",\n            \"to\": \"ARS\",\n            \"rate\": 1000,\n            \"source\": \"cache\",\n            \"originalBasePrice\": 980,\n            \"convertedBasePrice\": 980000,\n            \"ratesDate\": \"2026-09-17\"\n          }\n        },\n        \"errors\": [],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.07906600000001163\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.03971599999999853\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.046404999999992924\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.033380999999963024\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.031617999999980384\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.03519999999997481\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.039021999999988566\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Destino sin moneda conocida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "JP no esta en la tabla de monedas: deja el warning `CURRENCY_NOT_SUPPORTED` y la reserva sigue.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-3004\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"JL0006\",\n      \"origin\": \"MVD\",\n      \"destination\": \"NRT\",\n      \"departureDate\": \"{{fecha_JL0006}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"avisa CURRENCY_NOT_SUPPORTED\", () => pm.expect(pm.response.json().data.results[0].warnings[0].code).to.eql(\"CURRENCY_NOT_SUPPORTED\"));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Destino sin moneda conocida - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "JP no esta en la tabla de monedas: deja el warning `CURRENCY_NOT_SUPPORTED` y la reserva sigue.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-3004\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"JL0006\",\n      \"origin\": \"MVD\",\n      \"destination\": \"NRT\",\n      \"departureDate\": \"{{fecha_JL0006}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 0.4974060000000122,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 0,\n      \"completedWithWarnings\": 1,\n      \"rejected\": 0,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-3004\",\n        \"status\": \"completed_with_warnings\",\n        \"pricing\": {\n          \"currency\": \"USD\",\n          \"basePrice\": 1200,\n          \"loyaltyDiscount\": 180,\n          \"passengerTypeDiscount\": 0,\n          \"subtotal\": 1020,\n          \"taxes\": 122.4,\n          \"fuelSurcharge\": 96,\n          \"airportFee\": 25,\n          \"total\": 1263.4\n        },\n        \"metadata\": {},\n        \"errors\": [],\n        \"warnings\": [\n          {\n            \"code\": \"CURRENCY_NOT_SUPPORTED\",\n            \"message\": \"Currency is not configured for destination country JP\",\n            \"filter\": \"exchange-rate\"\n          }\n        ],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.06657300000000532\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.03038099999997712\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.11829800000003843\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.09597100000002001\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.033979999999985466\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.03526899999997113\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.04129499999999098\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Bajar el timeout para forzar el respaldo",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pipeline/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pipeline",
+                "config"
+              ]
+            },
+            "description": "Para probar el timeout sin tocar codigo: traer la config con GET /pipeline/config, poner `exchange.timeoutMs` en 100 y mandarla con este PUT. Tambien se puede apuntar EXCHANGE_API_BASE_URL a un host inexistente para forzar la falla de red."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Errores",
+      "description": "Rechazos de validacion y cuerpos invalidos.",
+      "item": [
+        {
+          "name": "Vuelo con fecha pasada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "AA0999 salio hace 5 dias.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-4001\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"AA0999\",\n      \"origin\": \"JFK\",\n      \"destination\": \"MIA\",\n      \"departureDate\": \"{{fecha_AA0999}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"rechazada por fecha\", () => pm.expect(pm.response.json().data.results[0].errors[0].code).to.be.oneOf([\"FLIGHT_DATE_IN_PAST\",\"FLIGHT_DATE_MISMATCH\"]));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Vuelo con fecha pasada - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "AA0999 salio hace 5 dias.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-4001\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"AA0999\",\n      \"origin\": \"JFK\",\n      \"destination\": \"MIA\",\n      \"departureDate\": \"{{fecha_AA0999}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 0.24578300000001718,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 0,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 1,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-4001\",\n        \"status\": \"rejected\",\n        \"metadata\": {},\n        \"errors\": [\n          {\n            \"code\": \"FLIGHT_DATE_IN_PAST\",\n            \"message\": \"El vuelo AA0999 ya partió\",\n            \"filter\": \"flight-validation\"\n          }\n        ],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.13061799999996992\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"rejected\",\n            \"durationMs\": 0.04839499999997088\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.00048599999996667975\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.000348999999971511\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0004549999999881038\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0004040000000031796\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.00037800000001197986\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Ruta que no coincide con el vuelo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "LA4567 va a GRU, no a MAD.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-4002\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"MAD\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"rechazada por ROUTE_MISMATCH\", () => pm.expect(pm.response.json().data.results[0].errors[0].code).to.eql(\"ROUTE_MISMATCH\"));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ruta que no coincide con el vuelo - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "LA4567 va a GRU, no a MAD.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-4002\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"MAD\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 0.3049359999999979,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 0,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 1,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-4002\",\n        \"status\": \"rejected\",\n        \"metadata\": {},\n        \"errors\": [\n          {\n            \"code\": \"ROUTE_MISMATCH\",\n            \"message\": \"La ruta solicitada no coincide con el vuelo LA4567\",\n            \"filter\": \"flight-validation\"\n          }\n        ],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.06649499999997488\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"rejected\",\n            \"durationMs\": 0.17221399999999676\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0007329999999683423\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0003859999999917818\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0003739999999652355\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.00032299999998031126\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.00028300000002445813\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Pasajero inactivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "P007 esta dado de baja.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-4003\",\n      \"passengerId\": \"P007\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"GRU\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"rechazada por PASSENGER_INACTIVE\", () => pm.expect(pm.response.json().data.results[0].errors[0].code).to.eql(\"PASSENGER_INACTIVE\"));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Pasajero inactivo - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "P007 esta dado de baja.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-4003\",\n      \"passengerId\": \"P007\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"GRU\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 0.1696359999999686,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 0,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 1,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-4003\",\n        \"status\": \"rejected\",\n        \"metadata\": {},\n        \"errors\": [\n          {\n            \"code\": \"PASSENGER_INACTIVE\",\n            \"message\": \"El pasajero P007 no está activo\",\n            \"filter\": \"passenger-validation\"\n          }\n        ],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"rejected\",\n            \"durationMs\": 0.10219299999999976\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0006619999999770698\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0004430000000184009\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.00032799999996768747\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.000367999999980384\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.00033899999999675856\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0002690000000029613\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Tipo de pasajero incoherente con la edad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "P010 tiene 30 anios y se lo declara child.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-4004\",\n      \"passengerId\": \"P010\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"GRU\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"child\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"rechazada por PASSENGER_TYPE_MISMATCH\", () => pm.expect(pm.response.json().data.results[0].errors[0].code).to.eql(\"PASSENGER_TYPE_MISMATCH\"));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Tipo de pasajero incoherente con la edad - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "P010 tiene 30 anios y se lo declara child.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-4004\",\n      \"passengerId\": \"P010\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"GRU\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"child\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 0.17913399999997637,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 0,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 1,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-4004\",\n        \"status\": \"rejected\",\n        \"metadata\": {},\n        \"errors\": [\n          {\n            \"code\": \"PASSENGER_TYPE_MISMATCH\",\n            \"message\": \"El tipo declarado no coincide con la edad del pasajero P010\",\n            \"filter\": \"passenger-validation\"\n          }\n        ],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"rejected\",\n            \"durationMs\": 0.07535000000001446\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0005370000000084474\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0004380000000310247\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0003690000000347027\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0004220000000145774\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.00034500000003845344\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"skipped\",\n            \"durationMs\": 0.0003539999999588872\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Cuerpo que no es JSON valido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "El JSON mal escrito se traduce a 400, no a 500.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reservations\":"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Cuerpo que no es JSON valido - 400",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "El JSON mal escrito se traduce a 400, no a 500.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"reservations\":"
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"message\": \"El cuerpo no es JSON valido\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Ruta inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/no-existe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "no-existe"
+              ]
+            },
+            "description": "404 con el metodo y la ruta pedidos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ruta inexistente - 404",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/no-existe",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "no-existe"
+                  ]
+                },
+                "description": "404 con el metodo y la ruta pedidos."
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"message\": \"No existe la ruta GET /no-existe\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Configuracion del pipeline",
+      "description": "Habilitar, deshabilitar y reparametrizar filtros en tiempo de ejecucion, sin tocar codigo. Correr las requests en orden: la ultima restablece los valores por defecto.",
+      "item": [
+        {
+          "name": "Ver la configuracion",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pipeline/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pipeline",
+                "config"
+              ]
+            },
+            "description": "Devuelve la configuracion vigente, el orden de los filtros y cuales estan registrados."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"configBase\", JSON.stringify(pm.response.json().data.config));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ver la configuracion - 200",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/pipeline/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pipeline",
+                    "config"
+                  ]
+                },
+                "description": "Devuelve la configuracion vigente, el orden de los filtros y cuales estan registrados."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"config\": {\n      \"filters\": {\n        \"passenger-validation\": {\n          \"enabled\": true\n        },\n        \"flight-validation\": {\n          \"enabled\": true\n        },\n        \"exchange-rate\": {\n          \"enabled\": true\n        },\n        \"base-price\": {\n          \"enabled\": true\n        },\n        \"loyalty-discount\": {\n          \"enabled\": true\n        },\n        \"passenger-type-adjustment\": {\n          \"enabled\": true\n        },\n        \"taxes\": {\n          \"enabled\": true\n        }\n      },\n      \"params\": {\n        \"base-price\": {\n          \"economyMultiplier\": 1,\n          \"businessMultiplier\": 2.5,\n          \"firstMultiplier\": 4\n        },\n        \"loyalty-discount\": {\n          \"bronze\": 0.05,\n          \"silver\": 0.1,\n          \"gold\": 0.15\n        },\n        \"passenger-type-adjustment\": {\n          \"child\": 0.25,\n          \"senior\": 0.15\n        },\n        \"taxes\": {\n          \"taxRate\": 0.12,\n          \"airportFee\": 25,\n          \"fuelSurchargeRate\": 0.08\n        }\n      },\n      \"exchange\": {\n        \"timeoutMs\": 5000,\n        \"maxAttempts\": 3\n      },\n      \"validateContextBetweenFilters\": true\n    },\n    \"filterOrder\": [\n      \"passenger-validation\",\n      \"flight-validation\",\n      \"exchange-rate\",\n      \"base-price\",\n      \"loyalty-discount\",\n      \"passenger-type-adjustment\",\n      \"taxes\"\n    ],\n    \"registeredFilters\": [\n      \"passenger-validation\",\n      \"flight-validation\",\n      \"exchange-rate\",\n      \"base-price\",\n      \"loyalty-discount\",\n      \"passenger-type-adjustment\",\n      \"taxes\"\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Deshabilitar el descuento por lealtad",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pipeline/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pipeline",
+                "config"
+              ]
+            },
+            "description": "Despues de esto, un pasajero gold paga el precio base completo y el filtro aparece como `disabled` en la traza.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filters\": {\n    \"passenger-validation\": {\n      \"enabled\": true\n    },\n    \"flight-validation\": {\n      \"enabled\": true\n    },\n    \"exchange-rate\": {\n      \"enabled\": true\n    },\n    \"base-price\": {\n      \"enabled\": true\n    },\n    \"loyalty-discount\": {\n      \"enabled\": false\n    },\n    \"passenger-type-adjustment\": {\n      \"enabled\": true\n    },\n    \"taxes\": {\n      \"enabled\": true\n    }\n  },\n  \"params\": {\n    \"base-price\": {\n      \"economyMultiplier\": 1,\n      \"businessMultiplier\": 2.5,\n      \"firstMultiplier\": 4\n    },\n    \"loyalty-discount\": {\n      \"bronze\": 0.05,\n      \"silver\": 0.1,\n      \"gold\": 0.15\n    },\n    \"passenger-type-adjustment\": {\n      \"child\": 0.25,\n      \"senior\": 0.15\n    },\n    \"taxes\": {\n      \"taxRate\": 0.12,\n      \"airportFee\": 25,\n      \"fuelSurchargeRate\": 0.08\n    }\n  },\n  \"exchange\": {\n    \"timeoutMs\": 5000,\n    \"maxAttempts\": 3\n  },\n  \"validateContextBetweenFilters\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"queda deshabilitado\", () => pm.expect(pm.response.json().data.config.filters[\"loyalty-discount\"].enabled).to.eql(false));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Deshabilitar el descuento por lealtad - 200",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pipeline/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pipeline",
+                    "config"
+                  ]
+                },
+                "description": "Despues de esto, un pasajero gold paga el precio base completo y el filtro aparece como `disabled` en la traza.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"passenger-validation\": {\n      \"enabled\": true\n    },\n    \"flight-validation\": {\n      \"enabled\": true\n    },\n    \"exchange-rate\": {\n      \"enabled\": true\n    },\n    \"base-price\": {\n      \"enabled\": true\n    },\n    \"loyalty-discount\": {\n      \"enabled\": false\n    },\n    \"passenger-type-adjustment\": {\n      \"enabled\": true\n    },\n    \"taxes\": {\n      \"enabled\": true\n    }\n  },\n  \"params\": {\n    \"base-price\": {\n      \"economyMultiplier\": 1,\n      \"businessMultiplier\": 2.5,\n      \"firstMultiplier\": 4\n    },\n    \"loyalty-discount\": {\n      \"bronze\": 0.05,\n      \"silver\": 0.1,\n      \"gold\": 0.15\n    },\n    \"passenger-type-adjustment\": {\n      \"child\": 0.25,\n      \"senior\": 0.15\n    },\n    \"taxes\": {\n      \"taxRate\": 0.12,\n      \"airportFee\": 25,\n      \"fuelSurchargeRate\": 0.08\n    }\n  },\n  \"exchange\": {\n    \"timeoutMs\": 5000,\n    \"maxAttempts\": 3\n  },\n  \"validateContextBetweenFilters\": true\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"config\": {\n      \"filters\": {\n        \"passenger-validation\": {\n          \"enabled\": true\n        },\n        \"flight-validation\": {\n          \"enabled\": true\n        },\n        \"exchange-rate\": {\n          \"enabled\": true\n        },\n        \"base-price\": {\n          \"enabled\": true\n        },\n        \"loyalty-discount\": {\n          \"enabled\": false\n        },\n        \"passenger-type-adjustment\": {\n          \"enabled\": true\n        },\n        \"taxes\": {\n          \"enabled\": true\n        }\n      },\n      \"params\": {\n        \"base-price\": {\n          \"economyMultiplier\": 1,\n          \"businessMultiplier\": 2.5,\n          \"firstMultiplier\": 4\n        },\n        \"loyalty-discount\": {\n          \"bronze\": 0.05,\n          \"silver\": 0.1,\n          \"gold\": 0.15\n        },\n        \"passenger-type-adjustment\": {\n          \"child\": 0.25,\n          \"senior\": 0.15\n        },\n        \"taxes\": {\n          \"taxRate\": 0.12,\n          \"airportFee\": 25,\n          \"fuelSurchargeRate\": 0.08\n        }\n      },\n      \"exchange\": {\n        \"timeoutMs\": 5000,\n        \"maxAttempts\": 3\n      },\n      \"validateContextBetweenFilters\": true\n    },\n    \"warnings\": []\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Ver el efecto en el siguiente procesamiento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "process"
+              ]
+            },
+            "description": "El mismo pasajero gold del caso de precios, ahora sin descuento: subtotal 620.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-5001\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"GRU\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"sin descuento de lealtad\", () => pm.expect(pm.response.json().data.results[0].pricing.subtotal).to.eql(620));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Ver el efecto en el siguiente procesamiento - 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/process",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "process"
+                  ]
+                },
+                "description": "El mismo pasajero gold del caso de precios, ahora sin descuento: subtotal 620.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reservations\": [\n    {\n      \"reservationId\": \"R-5001\",\n      \"passengerId\": \"P001\",\n      \"flightCode\": \"LA4567\",\n      \"origin\": \"MVD\",\n      \"destination\": \"GRU\",\n      \"departureDate\": \"{{fecha_LA4567}}\",\n      \"seatClass\": \"economy\",\n      \"passengerType\": \"adult\"\n    }\n  ]\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"processingTimeMs\": 0.4666339999999991,\n    \"summary\": {\n      \"total\": 1,\n      \"completed\": 1,\n      \"completedWithWarnings\": 0,\n      \"rejected\": 0,\n      \"error\": 0\n    },\n    \"results\": [\n      {\n        \"reservationId\": \"R-5001\",\n        \"status\": \"completed\",\n        \"pricing\": {\n          \"currency\": \"USD\",\n          \"basePrice\": 620,\n          \"passengerTypeDiscount\": 0,\n          \"subtotal\": 620,\n          \"taxes\": 74.4,\n          \"fuelSurcharge\": 49.6,\n          \"airportFee\": 25,\n          \"total\": 769\n        },\n        \"localPricing\": {\n          \"currency\": \"BRL\",\n          \"rate\": 5.4,\n          \"total\": 4152.6\n        },\n        \"metadata\": {\n          \"currencyConversion\": {\n            \"from\": \"USD\",\n            \"to\": \"BRL\",\n            \"rate\": 5.4,\n            \"source\": \"cache\",\n            \"originalBasePrice\": 620,\n            \"convertedBasePrice\": 3348,\n            \"ratesDate\": \"2026-09-17\"\n          }\n        },\n        \"errors\": [],\n        \"warnings\": [],\n        \"trace\": [\n          {\n            \"filter\": \"passenger-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.1391500000000292\n          },\n          {\n            \"filter\": \"flight-validation\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.038906999999994696\n          },\n          {\n            \"filter\": \"exchange-rate\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.05863299999998617\n          },\n          {\n            \"filter\": \"base-price\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.04055599999998094\n          },\n          {\n            \"filter\": \"loyalty-discount\",\n            \"outcome\": \"disabled\",\n            \"durationMs\": 0.0006500000000073669\n          },\n          {\n            \"filter\": \"passenger-type-adjustment\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.052455999999949654\n          },\n          {\n            \"filter\": \"taxes\",\n            \"outcome\": \"ok\",\n            \"durationMs\": 0.060600999999962823\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "PUT invalido (400)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pipeline/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pipeline",
+                "config"
+              ]
+            },
+            "description": "Una configuracion que no cumple el esquema se rechaza con 400 y `details`, y la anterior queda intacta.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filters\": {\n    \"base-price\": {\n      \"enabled\": \"si\"\n    }\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "PUT invalido (400) - 400",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pipeline/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pipeline",
+                    "config"
+                  ]
+                },
+                "description": "Una configuracion que no cumple el esquema se rechaza con 400 y `details`, y la anterior queda intacta.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"base-price\": {\n      \"enabled\": \"si\"\n    }\n  }\n}"
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"message\": \"Configuracion de pipeline invalida\",\n    \"details\": {\n      \"issues\": [\n        {\n          \"path\": \"filters.passenger-validation\",\n          \"message\": \"Invalid input: expected object, received undefined\"\n        },\n        {\n          \"path\": \"filters.flight-validation\",\n          \"message\": \"Invalid input: expected object, received undefined\"\n        },\n        {\n          \"path\": \"filters.exchange-rate\",\n          \"message\": \"Invalid input: expected object, received undefined\"\n        },\n        {\n          \"path\": \"filters.base-price.enabled\",\n          \"message\": \"Invalid input: expected boolean, received string\"\n        },\n        {\n          \"path\": \"filters.loyalty-discount\",\n          \"message\": \"Invalid input: expected object, received undefined\"\n        },\n        {\n          \"path\": \"filters.passenger-type-adjustment\",\n          \"message\": \"Invalid input: expected object, received undefined\"\n        },\n        {\n          \"path\": \"filters.taxes\",\n          \"message\": \"Invalid input: expected object, received undefined\"\n        },\n        {\n          \"path\": \"params\",\n          \"message\": \"Invalid input: expected object, received undefined\"\n        },\n        {\n          \"path\": \"exchange\",\n          \"message\": \"Invalid input: expected object, received undefined\"\n        },\n        {\n          \"path\": \"validateContextBetweenFilters\",\n          \"message\": \"Invalid input: expected boolean, received undefined\"\n        }\n      ]\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Restablecer los valores por defecto",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pipeline/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pipeline",
+                "config"
+              ]
+            },
+            "description": "Vuelve a dejar los siete filtros habilitados con los parametros de la letra.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filters\": {\n    \"passenger-validation\": {\n      \"enabled\": true\n    },\n    \"flight-validation\": {\n      \"enabled\": true\n    },\n    \"exchange-rate\": {\n      \"enabled\": true\n    },\n    \"base-price\": {\n      \"enabled\": true\n    },\n    \"loyalty-discount\": {\n      \"enabled\": true\n    },\n    \"passenger-type-adjustment\": {\n      \"enabled\": true\n    },\n    \"taxes\": {\n      \"enabled\": true\n    }\n  },\n  \"params\": {\n    \"base-price\": {\n      \"economyMultiplier\": 1,\n      \"businessMultiplier\": 2.5,\n      \"firstMultiplier\": 4\n    },\n    \"loyalty-discount\": {\n      \"bronze\": 0.05,\n      \"silver\": 0.1,\n      \"gold\": 0.15\n    },\n    \"passenger-type-adjustment\": {\n      \"child\": 0.25,\n      \"senior\": 0.15\n    },\n    \"taxes\": {\n      \"taxRate\": 0.12,\n      \"airportFee\": 25,\n      \"fuelSurchargeRate\": 0.08\n    }\n  },\n  \"exchange\": {\n    \"timeoutMs\": 5000,\n    \"maxAttempts\": 3\n  },\n  \"validateContextBetweenFilters\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Restablecer los valores por defecto - 200",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pipeline/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pipeline",
+                    "config"
+                  ]
+                },
+                "description": "Vuelve a dejar los siete filtros habilitados con los parametros de la letra.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"passenger-validation\": {\n      \"enabled\": true\n    },\n    \"flight-validation\": {\n      \"enabled\": true\n    },\n    \"exchange-rate\": {\n      \"enabled\": true\n    },\n    \"base-price\": {\n      \"enabled\": true\n    },\n    \"loyalty-discount\": {\n      \"enabled\": true\n    },\n    \"passenger-type-adjustment\": {\n      \"enabled\": true\n    },\n    \"taxes\": {\n      \"enabled\": true\n    }\n  },\n  \"params\": {\n    \"base-price\": {\n      \"economyMultiplier\": 1,\n      \"businessMultiplier\": 2.5,\n      \"firstMultiplier\": 4\n    },\n    \"loyalty-discount\": {\n      \"bronze\": 0.05,\n      \"silver\": 0.1,\n      \"gold\": 0.15\n    },\n    \"passenger-type-adjustment\": {\n      \"child\": 0.25,\n      \"senior\": 0.15\n    },\n    \"taxes\": {\n      \"taxRate\": 0.12,\n      \"airportFee\": 25,\n      \"fuelSurchargeRate\": 0.08\n    }\n  },\n  \"exchange\": {\n    \"timeoutMs\": 5000,\n    \"maxAttempts\": 3\n  },\n  \"validateContextBetweenFilters\": true\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"config\": {\n      \"filters\": {\n        \"passenger-validation\": {\n          \"enabled\": true\n        },\n        \"flight-validation\": {\n          \"enabled\": true\n        },\n        \"exchange-rate\": {\n          \"enabled\": true\n        },\n        \"base-price\": {\n          \"enabled\": true\n        },\n        \"loyalty-discount\": {\n          \"enabled\": true\n        },\n        \"passenger-type-adjustment\": {\n          \"enabled\": true\n        },\n        \"taxes\": {\n          \"enabled\": true\n        }\n      },\n      \"params\": {\n        \"base-price\": {\n          \"economyMultiplier\": 1,\n          \"businessMultiplier\": 2.5,\n          \"firstMultiplier\": 4\n        },\n        \"loyalty-discount\": {\n          \"bronze\": 0.05,\n          \"silver\": 0.1,\n          \"gold\": 0.15\n        },\n        \"passenger-type-adjustment\": {\n          \"child\": 0.25,\n          \"senior\": 0.15\n        },\n        \"taxes\": {\n          \"taxRate\": 0.12,\n          \"airportFee\": 25,\n          \"fuelSurchargeRate\": 0.08\n        }\n      },\n      \"exchange\": {\n        \"timeoutMs\": 5000,\n        \"maxAttempts\": 3\n      },\n      \"validateContextBetweenFilters\": true\n    },\n    \"warnings\": []\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Estado y cache",
+      "description": "Consulta del ultimo resultado de una reserva e invalidacion manual de la cache de tasas.",
+      "item": [
+        {
+          "name": "Estado de una reserva procesada",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/R-1001/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "R-1001",
+                "status"
+              ]
+            },
+            "description": "Devuelve el ultimo resultado guardado. Correr antes la request \"Reserva valida\"."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"trae el resultado\", () => pm.expect(pm.response.json().data.reservationId).to.eql(\"R-1001\"));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Estado de una reserva procesada - 200",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/R-1001/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "R-1001",
+                    "status"
+                  ]
+                },
+                "description": "Devuelve el ultimo resultado guardado. Correr antes la request \"Reserva valida\"."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"reservationId\": \"R-1001\",\n    \"status\": \"completed\",\n    \"pricing\": {\n      \"currency\": \"USD\",\n      \"basePrice\": 1550,\n      \"loyaltyDiscount\": 232.5,\n      \"passengerTypeDiscount\": 0,\n      \"subtotal\": 1317.5,\n      \"taxes\": 158.1,\n      \"fuelSurcharge\": 124,\n      \"airportFee\": 25,\n      \"total\": 1624.6\n    },\n    \"localPricing\": {\n      \"currency\": \"BRL\",\n      \"rate\": 5.4,\n      \"total\": 8772.84\n    },\n    \"metadata\": {\n      \"currencyConversion\": {\n        \"from\": \"USD\",\n        \"to\": \"BRL\",\n        \"rate\": 5.4,\n        \"source\": \"cache\",\n        \"originalBasePrice\": 620,\n        \"convertedBasePrice\": 3348,\n        \"ratesDate\": \"2026-09-17\"\n      }\n    },\n    \"errors\": [],\n    \"warnings\": [],\n    \"trace\": [\n      {\n        \"filter\": \"passenger-validation\",\n        \"outcome\": \"ok\",\n        \"durationMs\": 0.08133800000001656\n      },\n      {\n        \"filter\": \"flight-validation\",\n        \"outcome\": \"ok\",\n        \"durationMs\": 0.03337999999996555\n      },\n      {\n        \"filter\": \"exchange-rate\",\n        \"outcome\": \"ok\",\n        \"durationMs\": 0.05032499999998663\n      },\n      {\n        \"filter\": \"base-price\",\n        \"outcome\": \"ok\",\n        \"durationMs\": 0.03447399999998879\n      },\n      {\n        \"filter\": \"loyalty-discount\",\n        \"outcome\": \"ok\",\n        \"durationMs\": 0.0387749999999869\n      },\n      {\n        \"filter\": \"passenger-type-adjustment\",\n        \"outcome\": \"ok\",\n        \"durationMs\": 0.039974999999969896\n      },\n      {\n        \"filter\": \"taxes\",\n        \"outcome\": \"ok\",\n        \"durationMs\": 0.04412600000000566\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Estado de una reserva inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/R-NO-EXISTE/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "R-NO-EXISTE",
+                "status"
+              ]
+            },
+            "description": "404 cuando nunca se proceso esa reserva."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Estado de una reserva inexistente - 404",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/R-NO-EXISTE/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "R-NO-EXISTE",
+                    "status"
+                  ]
+                },
+                "description": "404 cuando nunca se proceso esa reserva."
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"message\": \"No hay resultados para la reserva R-NO-EXISTE\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Invalidar la cache de tasas",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/exchange-rates/cache",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "exchange-rates",
+                "cache"
+              ]
+            },
+            "description": "Vacia la cache en memoria. Es idempotente: siempre responde 204."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Invalidar la cache de tasas - 204",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/exchange-rates/cache",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "exchange-rates",
+                    "cache"
+                  ]
+                },
+                "description": "Vacia la cache en memoria. Es idempotente: siempre responde 204."
+              },
+              "status": "No Content",
+              "code": 204,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": ""
+            }
+          ]
+        },
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Sirve para verificar que el servidor esta levantado."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Health check - 200",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "health"
+                  ]
+                },
+                "description": "Sirve para verificar que el servidor esta levantado."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"status\": \"ok\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 /// <reference types="node" />
 
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
-import { logger } from '../../../src/utils/logger';
+import { logger, createLogger } from '../../../src/utils/logger';
 import { env, stdout } from 'node:process';
 
 describe('logger', () => {
@@ -30,5 +30,23 @@ describe('logger', () => {
     expect(output).toHaveBeenCalledTimes(1);
     const line = output.mock.calls[0]?.[0];
     expect(JSON.parse(String(line))).toEqual(expect.objectContaining({ level: 'info', message: 'started', reservationId: 'R-1' }));
+  });
+
+  it('createLogger(true) queda silencioso aunque el NODE_ENV real no sea test', () => {
+    env.NODE_ENV = 'production';
+    const output = jest.spyOn(stdout, 'write').mockImplementation(() => true);
+
+    createLogger(true).info('hidden');
+
+    expect(output).not.toHaveBeenCalled();
+  });
+
+  it('createLogger(false) escribe aunque el NODE_ENV real sea test', () => {
+    env.NODE_ENV = 'test';
+    const output = jest.spyOn(stdout, 'write').mockImplementation(() => true);
+
+    createLogger(false).info('visible');
+
+    expect(output).toHaveBeenCalledTimes(1);
   });
 });

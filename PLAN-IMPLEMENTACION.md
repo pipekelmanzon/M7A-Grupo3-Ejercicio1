@@ -317,3 +317,20 @@ El README incluye estas secciones:
 7. Procesamiento, contenedor y capa HTTP con los tests de integración.
 8. Colección de Postman.
 9. README y ajustes finales a `docs/`.
+
+## Decisiones de implementación
+
+Decisiones que se tomaron al implementar y que no estaban en el plan original.
+
+### Paso 1, estructura del proyecto
+
+- **`typecheck` corre sobre `tsconfig.test.json`, no sobre `tsconfig.json`.** Así el chequeo de tipos también cubre `tests/`, que es donde está la mitad del código. `tsconfig.json` queda solo para `build`, con `rootDir: src`.
+- **`jest.config.cjs` trae `coverageThreshold` al 90 %** en `src/filters/`, `src/pipeline/` y `src/services/`, que es el criterio de terminado de la sección 8.
+
+### Paso 7, procesamiento y capa HTTP
+
+- **`createContainer` acepta `exchangeRateProvider`, `exchangeRateService` y `extraFilters` por `overrides`.** Reemplazar el proveedor alcanza para probar caché, reintentos, timeout y respaldo sin tocar el servicio ni salir a internet. `extraFilters` es para los filtros de prueba de los casos de excepción y de contexto corrupto, que el ADR-003 pide inyectar por la raíz de composición; van después del orden de la letra porque `createFilterRegistry` solo acepta los siete nombres conocidos.
+- **El servicio de tipo de cambio recibe el logger del proyecto**, en lugar de su `console` por defecto, para que quede en silencio cuando `NODE_ENV` es `test`.
+- **El estado `processing` lo lleva el servicio de procesamiento, no el almacén de estados.** `ReservationProcessingService` mantiene el conjunto de reservas en curso y expone `isProcessing`. Así un GET de estado concurrente responde `processing` en lugar de 404, sin tener que guardar resultados a medio armar ni ampliar el tipo `ReservationResult`.
+- **Una reserva mal formada no entra al pipeline.** Se le arma el `ReservationResult` rechazado directamente, con `trace` vacía, y se la deja en la misma posición del lote en que vino.
+- **Los ejemplos guardados en la colección de Postman se generan ejecutando la app** contra un proveedor de tipo de cambio simulado. Así las respuestas son reales y las tasas no cambian cada vez que se regenera la colección.
