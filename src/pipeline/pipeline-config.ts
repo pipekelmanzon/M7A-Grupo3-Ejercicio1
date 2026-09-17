@@ -43,25 +43,3 @@ export const defaultPipelineConfig: PipelineConfig = {
   exchange: { timeoutMs: 5000, maxAttempts: 3 },
   validateContextBetweenFilters: true,
 };
-
-export class PipelineConfigStore {
-  private config: PipelineConfig;
-
-  public constructor(initial: PipelineConfig = defaultPipelineConfig) {
-    this.config = pipelineConfigSchema.parse(initial);
-  }
-
-  public get(): PipelineConfig {
-    return structuredClone(this.config);
-  }
-
-  public replace(config: unknown): PipelineConfig {
-    this.config = pipelineConfigSchema.parse(config);
-    return this.get();
-  }
-
-  public reset(): PipelineConfig {
-    this.config = pipelineConfigSchema.parse(defaultPipelineConfig);
-    return this.get();
-  }
-}

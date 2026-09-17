@@ -1,6 +1,7 @@
 import { createInitialContext, type ReservationContext } from '../../../src/pipeline/context';
 import { Pipeline } from '../../../src/pipeline/pipeline';
-import { PipelineConfigStore, defaultPipelineConfig } from '../../../src/pipeline/pipeline-config';
+import { defaultPipelineConfig } from '../../../src/pipeline/pipeline-config';
+import { PipelineConfigStore } from '../../../src/pipeline/pipeline-config.store';
 import type { Filter } from '../../../src/pipeline/filter';
 
 const request = {

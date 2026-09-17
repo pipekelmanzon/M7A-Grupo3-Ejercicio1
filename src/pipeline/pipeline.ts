@@ -2,7 +2,7 @@ import { performance } from 'node:perf_hooks';
 import type { ReservationContext } from './context.ts';
 import { reservationContextSchema } from './context.schema.ts';
 import type { Filter, ContextField } from './filter.ts';
-import { PipelineConfigStore } from './pipeline-config.ts';
+import { PipelineConfigStore } from './pipeline-config.store.ts';
 import { buildResult, type ReservationResult } from './result-builder.ts';
 
 function hasDependency(context: ReservationContext, dependency: ContextField): boolean {
