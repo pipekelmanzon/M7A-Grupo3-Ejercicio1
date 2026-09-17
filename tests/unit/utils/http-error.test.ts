@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals';
 import { HttpError } from '../../../src/utils/http-error';
 
 describe('HttpError', () => {
