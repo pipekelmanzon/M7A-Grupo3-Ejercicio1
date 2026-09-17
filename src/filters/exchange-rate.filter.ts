@@ -2,22 +2,9 @@ import type { CurrencyConversion, ReservationContext } from '../pipeline/context
 import type { Filter } from '../pipeline/filter.ts';
 import { warn } from '../pipeline/filter.ts';
 import type { ExchangeRateService, ExchangeRateServiceConfig } from '../services/exchange-rate.service.ts';
+import { countryCurrency } from '../data/country-currency.ts';
 
 const FILTER_NAME = 'exchange-rate';
-
-const COUNTRY_CURRENCIES: Record<string, string> = {
-  AR: 'ARS',
-  BR: 'BRL',
-  CL: 'CLP',
-  DE: 'EUR',
-  ES: 'EUR',
-  FR: 'EUR',
-  IT: 'EUR',
-  NL: 'EUR',
-  PT: 'EUR',
-  US: 'USD',
-  UY: 'UYU',
-};
 
 export class ExchangeRateFilter implements Filter {
   public readonly name = FILTER_NAME;
@@ -31,7 +18,7 @@ export class ExchangeRateFilter implements Filter {
 
   public async run(context: ReservationContext, params: unknown): Promise<ReservationContext> {
     const destinationCountryCode = context.flight?.destinationCountryCode.toUpperCase();
-    const targetCurrency = destinationCountryCode === undefined ? undefined : COUNTRY_CURRENCIES[destinationCountryCode];
+    const targetCurrency = destinationCountryCode === undefined ? undefined : countryCurrency[destinationCountryCode];
 
     if (targetCurrency === undefined) {
       return warn(context, 'CURRENCY_NOT_SUPPORTED', `Currency is not configured for destination country ${destinationCountryCode ?? 'unknown'}`, FILTER_NAME);
