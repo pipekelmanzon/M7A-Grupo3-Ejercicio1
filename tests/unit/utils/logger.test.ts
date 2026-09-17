@@ -1,12 +1,14 @@
+/// <reference types="node" />
+
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { logger } from '../../../src/utils/logger';
 import { env, stdout } from 'node:process';
 
 describe('logger', () => {
-  const originalNodeEnv = process.env.NODE_ENV;
+  const originalNodeEnv = env.NODE_ENV;
 
   afterEach(() => {
-    process.env.NODE_ENV = originalNodeEnv;
+    env.NODE_ENV = originalNodeEnv;
     jest.restoreAllMocks();
   });
 

@@ -3,16 +3,21 @@ import { retry } from '../../../src/utils/retry';
 
 describe('retry', () => {
   it('retries until the operation succeeds', async () => {
-    const operation = jest.fn()
-      .mockRejectedValueOnce(new Error('temporary'))
-      .mockRejectedValueOnce(new Error('temporary'))
-      .mockResolvedValue('ok');
+    let calls = 0;
+    const operation = jest.fn(async () => {
+      calls += 1;
+      if (calls < 3) throw new Error('temporary');
+      return 'ok';
+    });
     const failedAttempts: number[] = [];
 
     const result = await retry(operation, {
       attempts: 3,
       shouldRetry: () => true,
-      onFailedAttempt: (_error, attempt) => failedAttempts.push(attempt),
+      onFailedAttempt: (_error, attempt) => {
+        failedAttempts.push(attempt);
+        return;
+      },
     });
 
     expect(result).toBe('ok');
@@ -22,7 +27,7 @@ describe('retry', () => {
 
   it('stops immediately when the error is not retryable', async () => {
     const error = new Error('permanent');
-    const operation = jest.fn().mockRejectedValue(error);
+    const operation = jest.fn(async () => { throw error; });
 
     await expect(retry(operation, { attempts: 3, shouldRetry: () => false })).rejects.toBe(error);
     expect(operation).toHaveBeenCalledTimes(1);
@@ -30,9 +35,12 @@ describe('retry', () => {
 
   it('waits according to the configured delays', async () => {
     jest.useFakeTimers();
-    const operation = jest.fn()
-      .mockRejectedValueOnce(new Error('temporary'))
-      .mockResolvedValue('ok');
+    let calls = 0;
+    const operation = jest.fn(async () => {
+      calls += 1;
+      if (calls === 1) throw new Error('temporary');
+      return 'ok';
+    });
     const pending = retry(operation, { attempts: 2, delaysMs: [250], shouldRetry: () => true });
 
     await jest.advanceTimersByTimeAsync(249);
