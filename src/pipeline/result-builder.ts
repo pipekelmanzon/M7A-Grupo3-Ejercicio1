@@ -1,4 +1,5 @@
 import type { ReservationContext, PriceBreakdown, Issue, TraceEntry } from './context.ts';
+import { round2 } from '../utils/money.ts';
 
 export interface ReservationResult {
   reservationId: string;
@@ -11,10 +12,6 @@ export interface ReservationResult {
   trace: TraceEntry[];
 }
 
-function round2(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-
 function roundedPricing(pricing: PriceBreakdown): PriceBreakdown {
   const result: PriceBreakdown = { currency: 'USD' };
   for (const key of ['basePrice', 'loyaltyDiscount', 'passengerTypeDiscount', 'subtotal', 'taxes', 'fuelSurcharge', 'airportFee', 'total'] as const) {
@@ -25,9 +22,11 @@ function roundedPricing(pricing: PriceBreakdown): PriceBreakdown {
 }
 
 export function buildResult(context: ReservationContext): ReservationResult {
-  const status = context.status === 'error' || context.errors.length > 0
-    ? 'error'
-    : context.status === 'rejected' || context.halted
+  const status = context.status === 'rejected'
+    ? 'rejected'
+    : context.status === 'error' || context.errors.length > 0
+      ? 'error'
+      : context.halted
       ? 'rejected'
       : context.warnings.length > 0
         ? 'completed_with_warnings'
