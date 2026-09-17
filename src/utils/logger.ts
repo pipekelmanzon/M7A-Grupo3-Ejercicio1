@@ -1,3 +1,5 @@
+import { env, stderr, stdout } from 'node:process';
+
 export type LogLevel = 'info' | 'warn' | 'error';
 export type LogData = Record<string, unknown>;
 
@@ -13,16 +15,15 @@ function serializeError(value: unknown): unknown {
 }
 
 function write(level: LogLevel, message: string, data: LogData | undefined): void {
-  if (process.env.NODE_ENV === 'test') return;
+  if (env.NODE_ENV === 'test') return;
 
   const payload: LogData = { timestamp: new Date().toISOString(), level, message };
   if (data !== undefined) {
     for (const [key, value] of Object.entries(data)) payload[key] = serializeError(value);
   }
   const line = JSON.stringify(payload);
-  if (level === 'error') console.error(line);
-  else if (level === 'warn') console.warn(line);
-  else console.log(line);
+  if (level === 'error') stderr.write(`${line}\n`);
+  else stdout.write(`${line}\n`);
 }
 
 export const logger: Logger = {

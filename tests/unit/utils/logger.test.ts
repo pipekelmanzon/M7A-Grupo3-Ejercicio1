@@ -1,4 +1,5 @@
 import { logger } from '../../../src/utils/logger';
+import { env, stdout } from 'node:process';
 
 describe('logger', () => {
   const originalNodeEnv = process.env.NODE_ENV;
@@ -9,22 +10,22 @@ describe('logger', () => {
   });
 
   it('is silent in test mode', () => {
-    process.env.NODE_ENV = 'test';
-    const consoleLog = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    env.NODE_ENV = 'test';
+    const output = jest.spyOn(stdout, 'write').mockImplementation(() => true);
 
     logger.info('hidden');
 
-    expect(consoleLog).not.toHaveBeenCalled();
+    expect(output).not.toHaveBeenCalled();
   });
 
   it('writes one JSON line with structured data', () => {
-    process.env.NODE_ENV = 'development';
-    const consoleLog = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    env.NODE_ENV = 'development';
+    const output = jest.spyOn(stdout, 'write').mockImplementation(() => true);
 
     logger.info('started', { reservationId: 'R-1' });
 
-    expect(consoleLog).toHaveBeenCalledTimes(1);
-    const line = consoleLog.mock.calls[0]?.[0];
+    expect(output).toHaveBeenCalledTimes(1);
+    const line = output.mock.calls[0]?.[0];
     expect(JSON.parse(String(line))).toEqual(expect.objectContaining({ level: 'info', message: 'started', reservationId: 'R-1' }));
   });
 });
