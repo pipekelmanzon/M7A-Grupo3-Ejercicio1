@@ -36,6 +36,18 @@ describe('rutas inexistentes', () => {
     expect(response.status).toBe(413);
     expect(response.body.error.message).toMatch(/grande|large|tamano/i);
   });
+
+  it('loguea tambien los requests que fallan por JSON invalido', async () => {
+    const { app, container } = buildTestApp();
+    const spy = jest.spyOn(container.logger, 'info');
+
+    await request(app)
+      .post('/reservations/process')
+      .set('Content-Type', 'application/json')
+      .send('{"reservations":');
+
+    expect(spy).toHaveBeenCalledWith('peticion', expect.objectContaining({ status: 400 }));
+  });
 });
 
 describe('GET /reservations/:id/status', () => {

@@ -4,7 +4,7 @@ import type { Pipeline } from '../pipeline/pipeline.ts';
 import type { ReservationResult } from '../pipeline/result-builder.ts';
 import type { ProcessingStatusRepository } from '../repositories/processing-status.repository.ts';
 import { parseReservation } from '../schemas/reservation.schema.ts';
-import { logger } from '../utils/logger.ts';
+import { logger as defaultLogger, type Logger } from '../utils/logger.ts';
 
 export interface BatchSummary {
   total: number;
@@ -69,6 +69,7 @@ function pipelineExceptionResult(reservationId: string, error: unknown): Reserva
 export class ReservationProcessingService {
   private readonly pipeline: Pipeline;
   private readonly statusRepository: ProcessingStatusRepository;
+  private readonly logger: Logger;
   /**
    * Cuantos lotes en curso estan procesando cada reservationId ahora mismo.
    * Permite que un GET de estado concurrente responda `processing` en vez de
@@ -79,9 +80,10 @@ export class ReservationProcessingService {
    */
   private readonly inFlight = new Map<string, number>();
 
-  public constructor(pipeline: Pipeline, statusRepository: ProcessingStatusRepository) {
+  public constructor(pipeline: Pipeline, statusRepository: ProcessingStatusRepository, logger: Logger = defaultLogger) {
     this.pipeline = pipeline;
     this.statusRepository = statusRepository;
+    this.logger = logger;
   }
 
   public isProcessing(reservationId: string): boolean {
@@ -122,7 +124,7 @@ export class ReservationProcessingService {
 
       const processingTimeMs = performance.now() - startedAt;
       const summary = summarize(results);
-      logger.info('lote procesado', { total: summary.total, processingTimeMs, summary });
+      this.logger.info('lote procesado', { total: summary.total, processingTimeMs, summary });
 
       return { processingTimeMs, summary, results };
     } finally {

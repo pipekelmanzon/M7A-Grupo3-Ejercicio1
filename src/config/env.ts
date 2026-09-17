@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { env as processEnv } from 'node:process';
+import { zodIssuePath } from '../utils/zod-issue.ts';
 
 /**
  * Variables de entorno validadas con Zod. Los limites salen del ADR-002: el
@@ -26,7 +27,7 @@ export function loadEnv(source: Record<string, string | undefined> = processEnv)
   const parsed = envSchema.safeParse(source);
   if (!parsed.success) {
     const detail = parsed.error.issues
-      .map((issue) => `${issue.path.join('.') || '(raiz)'}: ${issue.message}`)
+      .map((issue) => `${zodIssuePath(issue)}: ${issue.message}`)
       .join('; ');
     throw new Error(`Configuracion de entorno invalida -> ${detail}`);
   }

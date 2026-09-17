@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ReservationRequest } from '../domain/types.ts';
+import { zodIssuePath } from '../utils/zod-issue.ts';
 
 const iataCode = z.string().trim().regex(/^[A-Z]{3}$/, 'debe ser un codigo IATA de 3 letras mayusculas');
 
@@ -56,6 +57,6 @@ export function parseReservation(value: unknown, index: number): ParsedReservati
   return {
     index,
     reservationId: readReservationId(value, index),
-    problems: parsed.error.issues.map((issue) => `${issue.path.join('.') || '(raiz)'}: ${issue.message}`),
+    problems: parsed.error.issues.map((issue) => `${zodIssuePath(issue)}: ${issue.message}`),
   };
 }

@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express';
 import type { Container } from '../../container.ts';
 import { reservationBatchSchema } from '../../schemas/reservation.schema.ts';
 import { HttpError } from '../../utils/http-error.ts';
+import { zodIssuePath } from '../../utils/zod-issue.ts';
 
 /**
  * Primer nivel de validacion: si el cuerpo no tiene forma de lote, se responde
@@ -15,7 +16,7 @@ export function processBatch(container: Container): RequestHandler {
       if (!parsed.success) {
         throw new HttpError(400, 'El cuerpo debe ser un lote de reservas', {
           issues: parsed.error.issues.map((issue) => ({
-            path: issue.path.join('.') || '(raiz)',
+            path: zodIssuePath(issue),
             message: issue.message,
           })),
         });

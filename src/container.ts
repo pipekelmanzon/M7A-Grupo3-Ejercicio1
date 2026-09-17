@@ -17,7 +17,7 @@ import { ExchangeRateApiProvider } from './services/exchange-rate-api.provider.t
 import type { ExchangeRateProvider } from './services/exchange-rate.provider.ts';
 import { ExchangeRateService } from './services/exchange-rate.service.ts';
 import { ReservationProcessingService } from './services/reservation-processing.service.ts';
-import { logger } from './utils/logger.ts';
+import { createLogger, type Logger } from './utils/logger.ts';
 
 /**
  * Raiz de composicion: el unico lugar que conoce las implementaciones
@@ -39,6 +39,7 @@ export interface ContainerOverrides {
 
 export interface Container {
   env: Env;
+  logger: Logger;
   passengerRepository: PassengerRepository;
   flightRepository: FlightRepository;
   statusRepository: ProcessingStatusRepository;
@@ -51,14 +52,17 @@ export interface Container {
 
 export function createContainer(overrides: ContainerOverrides = {}): Container {
   const env = overrides.env ?? loadEnv();
+  // El silencio del logger depende del Env ya validado de este contenedor,
+  // no del NODE_ENV real del proceso: asi un container armado con
+  // `env: { NODE_ENV: 'test' }` queda silencioso sin depender de que Jest
+  // tambien haya seteado esa misma variable en el proceso real.
+  const logger = createLogger(env.NODE_ENV === 'test');
   const passengerRepository = overrides.passengerRepository ?? new InMemoryPassengerRepository();
   const flightRepository = overrides.flightRepository ?? new InMemoryFlightRepository();
   const statusRepository = overrides.statusRepository ?? new ProcessingStatusRepository();
   const configStore = overrides.configStore ?? new PipelineConfigStore();
 
   const exchangeRateProvider = overrides.exchangeRateProvider ?? new ExchangeRateApiProvider();
-  // El servicio recibe el logger del proyecto en lugar de su `console` por
-  // defecto, para que quede en silencio cuando NODE_ENV es test.
   const exchangeRateService = overrides.exchangeRateService ?? new ExchangeRateService(exchangeRateProvider, logger);
 
   const filters: Filter[] = createFilterRegistry([
@@ -76,10 +80,10 @@ export function createContainer(overrides: ContainerOverrides = {}): Container {
   filters.push(...(overrides.extraFilters ?? []));
 
   const pipeline = new Pipeline(filters, configStore);
-  const processingService = new ReservationProcessingService(pipeline, statusRepository);
+  const processingService = new ReservationProcessingService(pipeline, statusRepository, logger);
 
   return {
-    env, passengerRepository, flightRepository, statusRepository, configStore,
+    env, logger, passengerRepository, flightRepository, statusRepository, configStore,
     exchangeRateService, filters, pipeline, processingService,
   };
 }

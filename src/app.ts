@@ -1,8 +1,8 @@
 import express, { type Express } from 'express';
 import type { Container } from './container.ts';
-import { errorHandler } from './http/middlewares/error-handler.ts';
+import { createErrorHandler } from './http/middlewares/error-handler.ts';
 import { notFound } from './http/middlewares/not-found.ts';
-import { requestLogger } from './http/middlewares/request-logger.ts';
+import { createRequestLogger } from './http/middlewares/request-logger.ts';
 import { createRouter } from './http/routes/index.ts';
 import { HttpError } from './utils/http-error.ts';
 
@@ -16,6 +16,11 @@ function bodyParserStatus(error: unknown): number | undefined {
 /** Arma la aplicacion Express sin ponerla a escuchar, para poder testearla. */
 export function createApp(container: Container): Express {
   const app = express();
+
+  // Va primero para que quede registrado incluso si express.json falla al
+  // parsear el cuerpo: si no, Express salta directo al middleware de error
+  // siguiente y esta peticion nunca aparece en el log.
+  app.use(createRequestLogger(container.logger));
 
   app.use(express.json({ limit: '1mb' }));
   // express.json deja pasar los errores del cuerpo (JSON invalido, cuerpo
@@ -34,12 +39,11 @@ export function createApp(container: Container): Express {
     }
     next(error);
   });
-  app.use(requestLogger);
 
   app.use(createRouter(container));
 
   app.use(notFound);
-  app.use(errorHandler);
+  app.use(createErrorHandler(container.logger));
 
   return app;
 }

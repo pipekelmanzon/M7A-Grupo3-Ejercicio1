@@ -4,6 +4,7 @@ import type { Container } from '../../container.ts';
 import { FILTER_ORDER } from '../../pipeline/filter-registry.ts';
 import { findBrokenDependencies } from '../../pipeline/pipeline-config.store.ts';
 import { HttpError } from '../../utils/http-error.ts';
+import { zodIssuePath } from '../../utils/zod-issue.ts';
 
 export function getConfig(container: Container): RequestHandler {
   return (_request, response) => {
@@ -23,27 +24,22 @@ export function getConfig(container: Container): RequestHandler {
  */
 export function replaceConfig(container: Container): RequestHandler {
   return (request, response, next) => {
+    let config;
     try {
-      let config;
-      try {
-        config = container.configStore.replace(request.body);
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          throw new HttpError(400, 'Configuracion de pipeline invalida', {
-            issues: error.issues.map((issue) => ({
-              path: issue.path.join('.') || '(raiz)',
-              message: issue.message,
-            })),
-          });
-        }
-        throw error;
-      }
-
-      response.status(200).json({
-        data: { config, warnings: findBrokenDependencies(config) },
-      });
+      config = container.configStore.replace(request.body);
     } catch (error) {
-      next(error);
+      if (!(error instanceof z.ZodError)) {
+        next(error);
+        return;
+      }
+      next(new HttpError(400, 'Configuracion de pipeline invalida', {
+        issues: error.issues.map((issue) => ({ path: zodIssuePath(issue), message: issue.message })),
+      }));
+      return;
     }
+
+    response.status(200).json({
+      data: { config, warnings: findBrokenDependencies(config) },
+    });
   };
 }
